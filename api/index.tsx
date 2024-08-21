@@ -117,7 +117,7 @@ app.frame('/:fid/:secret', async (c) => {
   
   let { fid } = frameData || {};
 
-  const regex = /\/([0-9]*)\/dangs[0-9a-zA-Z]*)/gm;
+  const regex = /\/([0-9]*)\/dangs[0-9a-zA-Z]*/gm;
   var regex_fid = parseInt([...req.url.matchAll(regex)][0][1]);
   
   fid = regex_fid || fid;
