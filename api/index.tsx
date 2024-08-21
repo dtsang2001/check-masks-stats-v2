@@ -96,8 +96,24 @@ async function checkFollowed(username:string) {
 }
 
 app.frame('/', async (c) => {
-  console.log(1);
-  
+  const { frameData } = c
+  const { fid } = frameData || {} 
+
+  const ids = MakeID(7);
+
+  const action = `/${fid || 0}/dangs${ids}`;
+
+  return c.res({
+    image: (
+      <Box height="100%" width="100%" backgroundSize="816px 426px" backgroundRepeat='no-repeat' backgroundImage={`url("${SITE_URL}/author.png")`}> </Box>
+    ),
+    intents: [
+      <Button action={action} value='/'>Check $MASKS Start</Button>
+    ],
+  })
+})
+
+app.frame('/bg/:secret', async (c) => {  
   const { frameData } = c
   const { fid } = frameData || {} 
 
