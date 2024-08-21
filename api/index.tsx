@@ -13,6 +13,10 @@ export const app = new Frog({
   assetsPath: '/',
   basePath: '/api',
   ui: { vars },
+  imageOptions: {
+    height: 426,
+    width: 816,
+  },
   // Supply a Hub to enable frame verification.
   hub: {
     apiUrl: "https://hubs.airstack.xyz",
