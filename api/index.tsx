@@ -92,7 +92,7 @@ async function checkFollowed(username:string) {
   var { viewerContext } = user || {};
   var { followedBy } = viewerContext || false;
 
-  return following;
+  return followedBy;
 }
 
 app.frame('/', async (c) => {
