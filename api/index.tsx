@@ -30,18 +30,6 @@ export const app = new Frog({
 )
 
 function Content(weeklyAllowance:string, remainingAllowance:string, masks:string, rank:string) {
-  if (typeof weeklyAllowance == "undefined") {
-    return <Row paddingLeft="64" height="5/7"> 
-            <Columns gap="8" grow> 
-              <Column width="1/7" />
-              <Column width="4/7"> 
-                <Heading size="20"> You have not participated in this airdrop from MASKS </Heading>
-              </Column>
-              <Column width="2/7" />
-            </Columns>
-          </Row>;
-  }
-
   return <Row paddingLeft="64" height="5/7"> 
           <Columns gap="8" grow> 
             <Column width="1/7" />
@@ -89,21 +77,84 @@ function MakeID(length:number) {
   return result;
 }
 
+async function checkFollowed(username:string) {
+  var res = await fetch("https://client.warpcast.com/v2/user-by-username?username="+username ,{ method:"GET", headers: {
+    "content-type": 'application/json; charset=utf-8',
+    'Authorization': 'Bearer MK-xrcZPv8Mzdebn6js71AYceKoz0y7UksQWHy9jb5yK9eW6E+sTMVSjwJM1vrVBHj0N1E91naFqSVmMjf/akMzdg=='
+  }});
+
+  var { result } = JSON.parse(await res.text()) || {};
+  var { user } = result || {};
+  var { viewerContext } = user || {};
+  var { following } = viewerContext || false;
+
+  return following;
+}
+
 app.frame('/', async (c) => {
   console.log(1);
   
   const { frameData } = c
   const { fid } = frameData || {} 
 
-  var { displayName, username, pfpUrl } = c.var.interactor || {};
+  const ids = MakeID(7);
 
+  const action = `/${fid || 0}/dangs${ids}`;
+
+  return c.res({
+    image: (
+      <Box height="100%" width="100%" backgroundSize="816px 426px" backgroundRepeat='no-repeat' backgroundImage={`url("${SITE_URL}/author.png")`}> </Box>
+    ),
+    intents: [
+      <Button action={action} value='/'>Check $MASKS Start</Button>
+    ],
+  })
+})
+
+app.frame('/:fid/:secret', async (c) => {
+
+  const { req, frameData } = c
+  
+  let { fid } = frameData || {};
+
+  const regex = /\/([0-9]*)\/dangs[0-9a-zA-Z]*)/gm;
+  var regex_fid = parseInt([...req.url.matchAll(regex)][0][1]);
+  
+  fid = regex_fid || fid;
+  
+  var ids = MakeID(7);
+  var action = `/${fid || 0}/dangs${ids}`;
+  
+  if (regex_fid) {
+    var user = await fetch("https://client.warpcast.com/v2/user-by-fid?fid="+fid ,{ method:"GET" });
+    var { result } = JSON.parse(await user.text()) || {};
+  }
+
+  var { displayName, username, pfpUrl, pfp } = c.var.interactor || result.user;
+  pfpUrl = pfpUrl || pfp.url;
+
+  if (fid != 368757) {
+    var isFollow = await checkFollowed(username);
+
+    if (!isFollow) {
+      return c.res({
+        image: (<Box height="100%" width="100%" backgroundSize="816px 426px" backgroundRepeat='no-repeat' backgroundImage={`url("${SITE_URL}/follow.png")`}> </Box>),
+        intents: [
+          <Button action={action} value='/'>Reload!</Button>,
+          <Button.Link href="https://warpcast.com/dangs.eth">Follow Now!</Button.Link>
+        ],
+      })
+    }
+  }
+  
   var masksBalance = await fetch("https://app.masks.wtf/api/balance?fid="+fid ,{ method:"GET" });
   var { weeklyAllowance, remainingAllowance, masks } = JSON.parse(await masksBalance.text()) || {};
 
   var rankBalance = await fetch("https://app.masks.wtf/api/rank?fid="+fid ,{ method:"GET" });
   var { rank } = JSON.parse(await rankBalance.text()) || {};
 
-  const ids = MakeID(7);
+  ids = MakeID(7);
+  action = `/0/dangs${ids}`;
   const uriShare = encodeURI(`https://warpcast.com/~/compose?text=Check your $MASKS Stats. Frame by @dangs.eth &embeds[]=${SITE_URL}api/${fid}/dangs${ids}`);
 
   return c.res({
@@ -112,8 +163,7 @@ app.frame('/', async (c) => {
       width: 816,
     },
     image: (
-      <Box height="100%" width="100%" backgroundSize="816px 426px" backgroundRepeat='no-repeat' backgroundImage={`url("${SITE_URL}/bg.png")`}> 
-
+    <Box height="100%" width="100%" backgroundSize="816px 426px" backgroundRepeat='no-repeat' backgroundImage={`url("${SITE_URL}/bg.png")`}>
         <Rows paddingTop="12" paddingRight="12" paddingLeft="12" paddingBottom="0" gap="8" grow>
           <Row height="2/7" >
             { typeof displayName != "undefined" ? 
@@ -130,64 +180,10 @@ app.frame('/', async (c) => {
           { Content(weeklyAllowance, remainingAllowance, masks, rank) }
           <Row height="1/7" alignVertical='bottom'> <Text size="12" color="white" align='right'>frame design by @dangs.eth</Text> </Row>
         </Rows>
-      </Box>
+    </Box>
     ),
     intents: [
-      <Button value="apples">Check</Button>,
-      <Button.Link href={uriShare}>Share</Button.Link>,
-    ],
-  })
-})
-
-app.frame('/:fid/:secret', async (c) => {
-
-  const { req } = c
-
-  const regex = /\/([0-9]*)\/dangs[0-9a-zA-Z]*/gm;
-  const fid = [...req.url.matchAll(regex)][0][1];
-  
-  var user = await fetch("https://client.warpcast.com/v2/user-by-fid?fid="+fid ,{ method:"GET" });
-  var { result } = JSON.parse(await user.text()) || {};
-  var { displayName, username, pfp } = result.user || {};
-  var { url } = pfp || {}
-
-  var masksBalance = await fetch("https://app.masks.wtf/api/balance?fid="+fid ,{ method:"GET" });
-  var { weeklyAllowance, remainingAllowance, masks } = JSON.parse(await masksBalance.text()) || {};
-
-  var rankBalance = await fetch("https://app.masks.wtf/api/rank?fid="+fid ,{ method:"GET" });
-  var { rank } = JSON.parse(await rankBalance.text()) || {};
-  
-  const ids = MakeID(7);
-  const uriShare = encodeURI(`https://warpcast.com/~/compose?text=Check your $MASKS Stats. Frame by @dangs.eth &embeds[]=${SITE_URL}api/${fid}/dangs${ids}`);
-
-  return c.res({
-    imageOptions: {
-      height: 426,
-      width: 816,
-    },
-    image: (
-      <Box height="100%" width="100%" backgroundSize="816px 426px" backgroundRepeat='no-repeat' backgroundImage={`url("${SITE_URL}/bg.png")`}> 
-
-        <Rows paddingTop="12" paddingRight="12" paddingLeft="12" paddingBottom="0" gap="8" grow>
-          <Row height="2/7" >
-            { typeof displayName != "undefined" ? 
-            <Columns gap="8" grow> 
-              <Column width="1/7"> 
-                <Image width="72" height="100%"borderRadius="192" objectFit='cover' src={url} />
-              </Column>
-              <Column alignVertical='center' width="6/7"> 
-                <Heading color="white" size="20"> {displayName} </Heading>
-                <Text color="white" size="14">@{username}</Text>
-              </Column>
-            </Columns> : "" }
-          </Row>
-          { Content(weeklyAllowance, remainingAllowance, masks, rank) }
-          <Row height="1/7" alignVertical='bottom'> <Text size="12" color="white" align='right'>frame design by @dangs.eth</Text> </Row>
-        </Rows>
-      </Box>
-    ),
-    intents: [
-      <Button action="/" value='/'>Check</Button>,
+      <Button action={action} value='/'>Check Your</Button>,
       <Button.Link href={uriShare}>Share</Button.Link>
     ],
   })
